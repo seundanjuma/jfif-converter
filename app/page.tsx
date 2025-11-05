@@ -5,21 +5,22 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
 export default function Home() {
+  type Step = "upload" | "ready" | "converting" | "done" | "downloaded";
   const [files, setFiles] = useState<File[]>([]);
-  const [step, setStep] = useState<"upload" | "ready" | "converting" | "done" | "downloaded">("upload");
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [step, setStep] = useState<Step>("upload");
+  const [progress, setProgress] = useState(0);
 
   // Handle file selection
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const fileArray = Array.from(e.target.files);
     setFiles(fileArray);
-    setStep("ready"); // ready to convert
+    setStep("ready");
   };
 
-  // Convert a single JFIF file to JPEG blob
-  const convertToJpeg = (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
+  // Convert a single JFIF to JPEG blob
+  const convertToJpeg = (file: File): Promise<Blob> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();
@@ -36,7 +37,7 @@ export default function Home() {
               resolve(blob);
             },
             "image/jpeg",
-            0.92 // quality
+            0.92
           );
         };
         img.onerror = () => reject("Image load error");
@@ -45,30 +46,29 @@ export default function Home() {
       reader.onerror = () => reject("File read error");
       reader.readAsDataURL(file);
     });
-  };
 
   // Handle conversion
   const handleConvert = async () => {
     setStep("converting");
-    setUploadProgress(0);
-    const total = files.length;
-    const convertedFiles: { name: string; blob: Blob }[] = [];
+    setProgress(0);
+    const converted: { name: string; blob: Blob }[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
       try {
-        const blob = await convertToJpeg(file);
-        const name = file.name.replace(/\.jfif$/i, ".jpg");
-        convertedFiles.push({ name, blob });
-        setUploadProgress(Math.round(((i + 1) / total) * 100));
+        const blob = await convertToJpeg(files[i]);
+        converted.push({
+          name: files[i].name.replace(/\.jfif$/i, ".jpg"),
+          blob,
+        });
+        setProgress(Math.round(((i + 1) / files.length) * 100));
       } catch (err) {
-        console.error("Conversion error:", err, file.name);
+        console.error("Conversion error:", err);
       }
     }
 
     // Create ZIP
     const zip = new JSZip();
-    convertedFiles.forEach((f) => zip.file(f.name, f.blob));
+    converted.forEach((f) => zip.file(f.name, f.blob));
     const zipBlob = await zip.generateAsync({ type: "blob" });
     saveAs(zipBlob, "converted.zip");
 
@@ -79,7 +79,7 @@ export default function Home() {
   const handleReset = () => {
     setFiles([]);
     setStep("upload");
-    setUploadProgress(0);
+    setProgress(0);
   };
 
   return (
@@ -88,19 +88,17 @@ export default function Home() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-gray-800">JFIF to JPEG Converter</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            Drag and drop your .jfif files or click to upload
-          </p>
+          <p className="text-gray-500 mt-1 text-sm">Drag and drop your .jfif files or click to upload</p>
         </div>
 
-        {/* Drop zone */}
+        {/* Upload Area */}
         {(step === "upload" || step === "ready") && (
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition relative">
+          <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition">
             <input
               type="file"
               multiple
               accept=".jfif"
-              className="absolute opacity-0 w-full h-full cursor-pointer"
+              className="absolute w-full h-full opacity-0 cursor-pointer"
               onChange={handleFiles}
             />
             {files.length === 0 ? (
@@ -111,23 +109,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Conversion progress */}
-        {step === "converting" && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Converting...</span>
-              <span>{uploadProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        {/* Convert button */}
+        {/* Convert Button */}
         {step === "ready" && (
           <div className="text-center">
             <button
@@ -139,7 +121,23 @@ export default function Home() {
           </div>
         )}
 
-        {/* Download / summary */}
+        {/* Conversion Progress */}
+        {step === "converting" && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Converting...</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* Download / Summary */}
         {step === "downloaded" && (
           <div className="text-center space-y-2">
             <p className="text-gray-600 text-sm">
