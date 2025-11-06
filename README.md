@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# jfif converter
 
-## Getting Started
+a simple web app i built to convert .jfif image files to .jpeg or .jpg in batches.  
 
-First, run the development server:
+i built this because i was downloading files from the internet that i wanted to use, but my picasa photo viewer could not open .jfif files and adobe illustrator was having issues with them. this tool solves that problem in the browser, with no server required.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- drag and drop multiple .jfif files  
+- upload using a file browser  
+- full-page drag overlay feedback while dragging files  
+- batch conversion to .jpeg or .jpg  
+- download all converted files as a zip  
+- conversion progress bar  
+- start over button to upload a new batch  
+- client-only rendering avoids hydration warnings caused by browser extensions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## tech stack
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- next.js 13+ with the app router  
+- react with functional components and hooks  
+- tailwind css for styling  
+- jszip for creating zip downloads  
+- filesaver for saving files client-side
