@@ -9,16 +9,18 @@ export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [step, setStep] = useState<Step>("upload");
   const [progress, setProgress] = useState(0);
+  const [zipBlob, setZipBlob] = useState<Blob | null>(null);
 
   // Handle file selection
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const fileArray = Array.from(e.target.files);
-    setFiles(fileArray);
-    setStep("ready");
+  const handleFiles = (fileList: FileList | File[]) => {
+    const fileArray = Array.from(fileList);
+    if (fileArray.length > 0) {
+      setFiles(fileArray);
+      setStep("ready");
+    }
   };
 
-  // Convert a single JFIF to JPEG blob
+  // Convert single JFIF to JPEG
   const convertToJpeg = (file: File): Promise<Blob> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -62,24 +64,29 @@ export default function Home() {
         });
         setProgress(Math.round(((i + 1) / files.length) * 100));
       } catch (err) {
-        console.error("Conversion error:", err);
+        console.error("Conversion error:", err, files[i].name);
       }
     }
 
-    // Create ZIP
     const zip = new JSZip();
     converted.forEach((f) => zip.file(f.name, f.blob));
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-    saveAs(zipBlob, "converted.zip");
+    const blob = await zip.generateAsync({ type: "blob" });
+    setZipBlob(blob);
+    setStep("done"); // ready to download
+  };
 
+  // Handle download
+  const handleDownload = () => {
+    if (zipBlob) saveAs(zipBlob, "converted.zip");
     setStep("downloaded");
   };
 
-  // Reset
+  // Reset for new batch
   const handleReset = () => {
     setFiles([]);
-    setStep("upload");
+    setZipBlob(null);
     setProgress(0);
+    setStep("upload");
   };
 
   return (
@@ -87,22 +94,37 @@ export default function Home() {
       <div className="w-full max-w-xl bg-white rounded-2xl shadow p-8 space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-semibold text-gray-800">JFIF to JPEG Converter</h1>
-          <p className="text-gray-500 mt-1 text-sm">Drag and drop your .jfif files or click to upload</p>
+          <h1 className="text-2xl font-semibold text-gray-800">
+            JFIF to JPEG Converter
+          </h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            Drag and drop your .jfif files or click to upload
+          </p>
         </div>
 
         {/* Upload Area */}
         {(step === "upload" || step === "ready") && (
-          <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition">
+          <div
+            className="relative border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+              }
+            }}
+          >
             <input
               type="file"
               multiple
               accept=".jfif"
               className="absolute w-full h-full opacity-0 cursor-pointer"
-              onChange={handleFiles}
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
             />
             {files.length === 0 ? (
-              <p className="text-gray-600">Drop files here or click to browse</p>
+              <p className="text-gray-600">
+                Drop files here or click to browse
+              </p>
             ) : (
               <p className="text-gray-600">{files.length} file(s) selected</p>
             )}
@@ -137,11 +159,24 @@ export default function Home() {
           </div>
         )}
 
-        {/* Download / Summary */}
+        {/* Download Button */}
+        {step === "done" && (
+          <div className="text-center">
+            <button
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+              onClick={handleDownload}
+            >
+              Download ZIP
+            </button>
+          </div>
+        )}
+
+        {/* Summary / Reset */}
         {step === "downloaded" && (
           <div className="text-center space-y-2">
             <p className="text-gray-600 text-sm">
-              Download started for <span className="font-medium">{files.length}</span> file(s).
+              Download started for{" "}
+              <span className="font-medium">{files.length}</span> file(s).
             </p>
             <button
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition"
